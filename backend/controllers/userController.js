@@ -15,8 +15,35 @@ exports.registerUser = catchAsyncError(async (req, res, next) => {
     },
   });
 
+  const token = user.getJWTToken();
   res.status(201).json({
     success: true,
-    user,
+    // user,
+    token, //for cookie
+  });
+});
+
+// login User
+exports.loginUser = catchAsyncError(async (req, res, next) => {
+  const { email, password } = req.body;
+  // check if user has given password & email both
+  if (!email || !password) {
+    return next(new ErrorHandler(`please enter email & password`));
+  }
+  //find user
+  const user = User.findOne({ email }).select("+password");
+  if (!user) {
+    return next(new ErrorHandler(`please enter email or password`,401));
+  }
+
+  const isPasswordMatched = user.comparePassword(password);
+  if (!isPasswordMatched) {
+    return next(new ErrorHandler(`please enter email or password`,401));
+  }
+  const token = user.getJWTToken();
+  res.status(200).json({
+    success: true,
+    // user,
+    token, //for cookie
   });
 });
