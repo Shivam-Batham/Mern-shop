@@ -2,7 +2,7 @@ const ErrorHandler = require("../utils/errorHandler.js");
 const catchAsyncError = require("../middleware/catchAsyncError.js");
 const User = require("../models/userModel.js");
 const sendToken = require("../utils/jwtToken.js");
-
+const sendEmail =  require("../utils/sendEmail.js");
 // register user
 exports.registerUser = catchAsyncError(async (req, res, next) => {
   const { name, email, password } = req.body;
@@ -62,4 +62,35 @@ exports.logout = catchAsyncError(async (req,res,next)=>{
     success: true,
     message:"Logget out",
   });
+})
+// forget password
+exports.forgetPassword = catchAsyncError(async(req,res,next)=>{
+  const user = await User.findOne({email:req.body.email});
+  if(!user){
+    return next(new ErrorHandler("User not Found",404));
+  }
+  // get reset password token
+  const resetToken = user.getResetPasswordToken();
+  await user.save({validateBeforeSave:false});
+  // creating reset link
+  const resetPasswordUrl = `${req.protocol}://${req.get("host")}/api/v1/password/reset/${resetToken}`;
+
+  const message = `your password reset token is :\n\n
+  ${resetPasswordUrl}\n\n if you have not requested this email then, Please ignore this`;
+  try{
+    await sendEmail({
+      email:user.email,
+      subject:`Mern Shop password recovery`,
+      message,
+    });
+    res.status(200).json({
+      success:true,
+      message:`Email sent to ${user.email} succesfully`,
+    });
+  }catch(error){
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save({validateBeforeSave:false});
+    return next(ErrorHandler(error.message,500));
+  }
 })
