@@ -1,6 +1,7 @@
 const ErrorHandler = require("../utils/errorHandler.js");
 const catchAsyncError = require("../middleware/catchAsyncError.js");
 const User = require("../models/userModel.js");
+const sendToken = require("../utils/jwtToken.js");
 
 // register user
 exports.registerUser = catchAsyncError(async (req, res, next) => {
@@ -14,13 +15,14 @@ exports.registerUser = catchAsyncError(async (req, res, next) => {
       url: "sampleUrl",
     },
   });
+  sendToken(user,201,res);
 
-  const token = user.getJWTToken();
-  res.status(201).json({
-    success: true,
-    // user,
-    token, //for cookie
-  });
+  // const token = user.getJWTToken();
+  // res.status(201).json({
+  //   success: true,
+  //   // user,
+  //   token, //for cookie
+  // });
 });
 
 // login User
@@ -31,7 +33,7 @@ exports.loginUser = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler(`please enter email & password`));
   }
   //find user
-  const user = User.findOne({ email }).select("+password");
+  const user = await User.findOne({ email }).select("+password");
   if (!user) {
     return next(new ErrorHandler(`please enter email or password`,401));
   }
@@ -40,10 +42,11 @@ exports.loginUser = catchAsyncError(async (req, res, next) => {
   if (!isPasswordMatched) {
     return next(new ErrorHandler(`please enter email or password`,401));
   }
-  const token = user.getJWTToken();
-  res.status(200).json({
-    success: true,
-    // user,
-    token, //for cookie
-  });
+  sendToken(user,200,res);
+  // const token = user.getJWTToken();
+  // res.status(200).json({
+  //   success: true,
+  //   // user,
+  //   token, //for cookie
+  // });
 });
