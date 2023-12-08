@@ -131,3 +131,91 @@ exports.getUserDatails = catchAsyncError(async (req,res,next)=>{
   })
 
 })
+// update user password
+exports.updateUserPassword = catchAsyncError(async (req,res,next)=>{
+  const user = await User.findById(req.user.id).select("+password");
+
+  const isPasswordMatched = await user.comparePassword(req.body.oldPassword);
+  if (!isPasswordMatched) {
+    return next(new ErrorHandler(`old password is incorrect`,400));
+  }
+  if(req.body.newPassword !== req.body.confirmPassword){
+    return next(new ErrorHandler(`password does matched`,400));
+  }
+  user.password = req.body.newPassword;
+  await user.save();
+  sendToken(user,200,res);
+
+})
+// update user profile
+exports.updateUserProfile = catchAsyncError(async (req,res,next)=>{
+  const newUserData = {
+    name : req.body.name,
+    email: req.body.email,
+  }
+  const user = await User.findByIdAndUpdate(req.user.id, newUserData,{
+    new : true,
+    runValidators:true,
+    userFindAndModify:false
+  });
+  // we will add cloudinary later
+
+  res.status(200).json({
+    success:true,
+
+  })
+})
+// get all users -- admin
+exports.getAllUsers = catchAsyncError(async (req,res,next)=>{
+
+  const users = await User.find();
+
+  res.status(200).json({
+    success:true,
+
+  })
+});
+// get single user -- admin
+exports.getSingleUser = catchAsyncError(async (req,res,next)=>{
+
+  const users = await User.findById(req.params.id);
+  if(!user){
+    return next(new ErrorHandler(`User does not exist with this id ${req.params.id}`,400));
+
+  }
+  res.status(200).json({
+    success:true,
+
+  })
+});
+
+// update user role -- admin
+exports.updateUserRole = catchAsyncError(async (req,res,next)=>{
+  const newUserData = {
+    name:req.body.name,
+    email:req.body.email,
+    role:req.body.role
+  }
+  const user  = await User.findByIdAndUpdate(req.user.id,newUserData,{
+    new:true,
+    runValidators:true,
+    userFindAndModify:false,
+  });
+  res.status(200).json({
+    success:true,
+
+  })
+})
+// delete user --admin
+exports.deleteUser = catchAsyncError(async (req,res,next)=>{
+  
+  const user  = await User.findByIdAndUpdate(req.params.id);
+  if(!user){
+    return next(new ErrorHandler(`User does not exist with this id ${req.params.id}`,400));
+  }
+  await user.remove();
+  res.status(200).json({
+    success:true,
+    message:"User deleted successfully",
+  })
+})
