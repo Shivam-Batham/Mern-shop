@@ -3,6 +3,7 @@ const catchAsyncError = require("../middleware/catchAsyncError.js");
 const User = require("../models/userModel.js");
 const sendToken = require("../utils/jwtToken.js");
 const sendEmail =  require("../utils/sendEmail.js");
+const crypto =  require("crypto");
 // register user
 exports.registerUser = catchAsyncError(async (req, res, next) => {
   const { name, email, password } = req.body;
@@ -34,11 +35,13 @@ exports.loginUser = catchAsyncError(async (req, res, next) => {
   }
   //find user
   const user = await User.findOne({ email }).select("+password");
-  if (!user) {
+  // if user not found
+  if (!user) { 
     return next(new ErrorHandler(`please enter email or password`,401));
   }
 
   const isPasswordMatched = user.comparePassword(password);
+  // if password not matched
   if (!isPasswordMatched) {
     return next(new ErrorHandler(`please enter email or password`,401));
   }
@@ -77,6 +80,7 @@ exports.forgetPassword = catchAsyncError(async(req,res,next)=>{
 
   const message = `your password reset token is :\n\n
   ${resetPasswordUrl}\n\n if you have not requested this email then, Please ignore this`;
+  // if any error comes
   try{
     await sendEmail({
       email:user.email,
@@ -91,6 +95,29 @@ exports.forgetPassword = catchAsyncError(async(req,res,next)=>{
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save({validateBeforeSave:false});
-    return next(ErrorHandler(error.message,500));
+    
+    return next(new ErrorHandler(error.message,500));
   }
+})
+
+// Reset password
+exports.resetPassword = catchAsyncError(async (req,res,next)=>{
+  // creating token hash  
+  const resetPasswordToken = crypto.createHash("sha256").update(req.params.token).digest("hex");
+
+  const user = await User.findOne({
+    resetPasswordToken,
+    resetPasswordExpire:{$gt : Date.now()}
+  });
+  if(!user){
+    return next(new ErrorHandler("reset password token is invalid or has been expired",404));
+  }
+  if(req.body.password !== req.body.confirmPassword){
+    return next(new ErrorHandler("reset password token is invalid or has been expired",404));
+  }
+  user.password = req.body.password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire=undefined;
+  await user.save();
+  sendToken(user,200,res);
 })
