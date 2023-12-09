@@ -12,6 +12,9 @@ app.use("/api/v1/",user);
 // product route
 const product = require("./routes/productRoute");
 app.use("/api/v1/",product);
+// order route
+const order = require("./routes/orderRoute.js");
+app.use("/api/v1/",order);
 // middleware for error
 app.use(ErrorHandler);
 
