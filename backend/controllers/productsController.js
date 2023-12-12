@@ -42,16 +42,21 @@ exports.updateProduct = catchAsyncError(async (req, res, next) => {
     message: "updated successfully",
     product,
   });
-});
+});  
 // get all products
 exports.getAllProducts = catchAsyncError(async (req, res) => {
-  const resultPerPage = 5;
+  const resultPerPage = 8;
   const productCount = await Product.countDocuments();
   const apiFeaure = new ApiFeatures(Product.find(), req.query)
     .search()
     .filter()
-    .pagination(resultPerPage);
-  const products = await apiFeaure.query;
+    let products = await apiFeature.query;
+
+  let filteredProductsCount = products.length;
+
+  apiFeature.pagination(resultPerPage);
+
+  products = await apiFeature.query;
   if (!products) {
     return next(new ErrorHandler("products not found", 404));
   }
@@ -59,6 +64,7 @@ exports.getAllProducts = catchAsyncError(async (req, res) => {
     success: true,
     products,
     productCount,
+    resultPerPage
   });
 });
 // delete product
